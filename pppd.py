@@ -22,7 +22,7 @@ def enqueue_output(out, queue):
         queue.put(line)
     out.close()
 
-__version__ = '1.0.6'
+__version__ = '1.0.5'
 
 PPPD_RETURNCODES = {
     1:  'Fatal error occured',
@@ -54,6 +54,7 @@ class PPPConnectionError(Exception):
         self.code = code
         self.message = PPPD_RETURNCODES.get(code, 'Undocumented error occured')
         self.output = output
+        self._interface = ''
 
         super(Exception, self).__init__(code, output)
 
@@ -163,6 +164,9 @@ class PPPConnection:
                 else:
                     self.line = codecs.decode(str(self.line).encode('utf-8', errors='ignore'), errors='ignore')
                     self.output += self.line
+                    if 'Connect: ' in self.line:
+                        if (len(self.line.split()) > 1):
+                            self._interface = self.line.split()[1]
 
             except IOError as e:
                 if e.errno != 11:
@@ -187,6 +191,10 @@ class PPPConnection:
 
     def read(self):
         return self.output
+
+    @property
+    def interface(self):
+        return self._interface
 
     @property
     def laddr(self):

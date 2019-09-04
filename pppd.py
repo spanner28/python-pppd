@@ -67,8 +67,8 @@ class PPPConnection:
 
         self.commands = []
 
-        self.args = *args
-        self.kwargs = **kwargs
+        self.args = args
+        self.kwargs = kwargs
 
         self.command()
 

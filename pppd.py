@@ -107,6 +107,8 @@ class PPPConnection:
                 raise PPPConnectionError(self.proc.returncode, self.output)
             if 'Connection terminated' in self.output:
                 raise PPPConnectionError(self.proc.returncode, self.output)
+            if 'Couldn\'t allocate PPP' in self.output:
+                raise PPPConnectionError(self.proc.returncode, self.output)
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 

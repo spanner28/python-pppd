@@ -65,6 +65,9 @@ class PPPConnection:
         self._laddr = None
         self._raddr = None
 
+        return self.connect()
+
+    def connect(self):
         commands = []
 
         if kwargs.pop('sudo', True):
@@ -115,6 +118,21 @@ class PPPConnection:
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 
+
+    def disconnect(self):
+        try:
+            if not self.connected():
+                return
+        except PPPConnectionError:
+            return
+
+        self.proc.send_signal(signal.SIGHUP)
+        self.proc.wait()
+
+    def reconnect(self):
+        self.disconnect()
+        eslf.connect()
+
     def read(self):
         return self.output
 
@@ -160,13 +178,3 @@ class PPPConnection:
             return True
 
         return False
-
-    def disconnect(self):
-        try:
-            if not self.connected():
-                return
-        except PPPConnectionError:
-            return
-
-        self.proc.send_signal(signal.SIGHUP)
-        self.proc.wait()

@@ -6,6 +6,7 @@ import re
 import time
 from threading  import Thread
 import codecs
+import psutil
 
 try:
     from queue import Queue, Empty
@@ -21,7 +22,7 @@ def enqueue_output(out, queue):
         queue.put(line)
     out.close()
 
-__version__ = '1.0.5'
+__version__ = '1.0.6'
 
 PPPD_RETURNCODES = {
     1:  'Fatal error occured',
@@ -65,14 +66,18 @@ class PPPConnection:
         self._laddr = None
         self._raddr = None
 
-        self.commands = []
-
         self.args = args
         self.kwargs = kwargs
+
+        self.peer = kwargs.get('call', None)
+        if (self.peer == None):
+            raise Exception('Please specify peer name, call="example"')
 
         self.command()
 
     def command(self):
+        self.commands = []
+
         if self.kwargs.pop('sudo', True):
             sudo_path = self.kwargs.pop('sudo_path', '/usr/bin/sudo')
             if not os.path.isfile(sudo_path) or not os.access(sudo_path, os.X_OK):
@@ -85,20 +90,46 @@ class PPPConnection:
 
         self.commands.append(pppd_path)
 
-        for k,v in self.kwargs.items():
+    def params(self, *args, **kwargs):
+        for k,v in kwargs.items():
             self.commands.append(k)
-            self.commands.append(v)
-        self.commands.extend(self.args)
-        self.commands.append('nodetach')
+            if (not v is None):
+                self.commands.append(v)
+        self.commands.extend(args)
 
-    def connect(self, *args, **kwargs):
+    def connect(self):
+        self.command()
+        self.params(call=self.peer)
+        self.commands.append('nodetach')
         self.run()
 
     def disconnect(self):
-        self.command()
-        self.commands.append('disconnect')
-        self.run()
 
+        for proc in psutil.process_iter():
+            try:
+                pinfo = proc.as_dict(attrs=['pid', 'cmdline'])
+            except psutil.NoSuchProcess:
+                pass
+            else:
+                if 'pppd call %s' % self.peer in ' '.join(pinfo['cmdline']):
+                    print(pinfo)
+                    try:
+                        proc = psutil.Process(pid=pinfo['pid'])
+                        proc.terminate()
+                    except psutil.NoSuchProcess as e:
+                        print(e)
+                        pass
+
+        # example 1
+        # self.command()
+        # self.params(disconnect='"chat -- \d+++\d\c OK ath0 OK"')
+        # self.run()
+
+        # exmaple 2
+        # self.commands.append('/usr/bin/poff')
+        # self.commands.append(self.peer)
+
+        # example 3
         # try:
         #     if not self.connected():
         #         return
@@ -114,7 +145,10 @@ class PPPConnection:
         # self.proc.send_signal(signal.SIGHUP)
         # self.proc.wait()
 
+
     def run(self):
+        print(self.commands)
+
         self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
         q = Queue()
         t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
@@ -135,6 +169,8 @@ class PPPConnection:
                     raise
                 time.sleep(1)
             if 'ip-up finished' in self.output:
+                return
+            if 'remote IP address' in self.output:
                 return
             if 'Couldn\'t allocate PPP' in self.output:
                 raise PPPConnectionError(20, self.output)

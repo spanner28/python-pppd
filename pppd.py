@@ -1,10 +1,25 @@
 import fcntl
 import os
+import sys
 import signal
 import re
 import time
+from threading  import Thread
+import codecs
+
+try:
+    from queue import Queue, Empty
+except ImportError:
+    from Queue import Queue, Empty  # python 2.x
 
 from subprocess import Popen, PIPE, STDOUT
+
+ON_POSIX = 'posix' in sys.builtin_module_names
+
+def enqueue_output(out, queue):
+    for line in iter(out.readline, b''):
+        queue.put(line)
+    out.close()
 
 __version__ = '1.0.3'
 
@@ -67,28 +82,36 @@ class PPPConnection:
         commands.extend(args)
         commands.append('nodetach')
 
-        self.proc = Popen(commands, 
-            stdout=PIPE, 
-            stderr=STDOUT, 
-            universal_newlines=True, 
-            preexec_fn=os.setsid)
-        
-        # set stdout to non-blocking
-        fd = self.proc.stdout.fileno()
-        fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+        self.proc = Popen(commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        q = Queue()
+        t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
+        t.daemon = True # thread dies with the program
+        t.start()
 
         while True:
             try:
-                self.output += self.proc.stdout.read()
+                try:  line = q.get_nowait() # or q.get(timeout=.1)
+                except Empty:
+                    None
+                else:
+                    line = codecs.decode(str(line).encode('utf-8', errors='ignore'), errors='ignore')
+                    self.output += line
+
             except IOError as e:
                 if e.errno != 11:
                     raise
                 time.sleep(1)
             if 'ip-up finished' in self.output:
-                return
+                return True
+            if 'authentication failed' in self.output:
+                return False
+            if 'Connection terminated' in self.output:
+                return False
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
+
+    def output(self):
+        return self.output
 
     @property
     def laddr(self):
@@ -140,9 +163,5 @@ class PPPConnection:
         except PPPConnectionError:
             return
 
-        # Send the signal to all the processes in group
-        # Based on stackoverlfow: 
-        # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGHUP)
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGTERM)
-        
+        self.proc.send_signal(signal.SIGHUP)
+        self.proc.wait()

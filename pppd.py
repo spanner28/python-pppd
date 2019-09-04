@@ -65,30 +65,31 @@ class PPPConnection:
         self._laddr = None
         self._raddr = None
 
-        return self.connect(args, kwargs)
-
-    def connect(self, *args, **kwargs):
-        commands = []
+        self.commands = []
 
         if kwargs.pop('sudo', True):
             sudo_path = kwargs.pop('sudo_path', '/usr/bin/sudo')
             if not os.path.isfile(sudo_path) or not os.access(sudo_path, os.X_OK):
                 raise IOError('%s not found' % sudo_path)
-            commands.append(sudo_path)
+            self.commands.append(sudo_path)
 
         pppd_path = kwargs.pop('pppd_path', '/usr/sbin/pppd')
         if not os.path.isfile(pppd_path) or not os.access(pppd_path, os.X_OK):
             raise IOError('%s not found' % pppd_path)
 
-        commands.append(pppd_path)
+        self.commands.append(pppd_path)
 
         for k,v in kwargs.items():
-            commands.append(k)
-            commands.append(v)
-        commands.extend(args)
-        commands.append('nodetach')
+            self.commands.append(k)
+            self.commands.append(v)
+        self.commands.extend(args)
+        self.commands.append('nodetach')
 
-        self.proc = Popen(commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        return self.connect()
+
+    def connect(self, *args, **kwargs):
+
+        self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
         q = Queue()
         t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
         t.daemon = True # thread dies with the program

@@ -67,36 +67,36 @@ class PPPConnection:
 
         self.commands = []
 
-        self.args = args
-        self.kwargs = kwargs
+        self.args = *args
+        self.kwargs = **kwargs
 
-        self.command(*self.args, **self.kwargs)
+        self.command()
 
-
-    def command(self, *args, **kwargs):
-        if kwargs.pop('sudo', True):
-            sudo_path = kwargs.pop('sudo_path', '/usr/bin/sudo')
+    def command(self):
+        if self.kwargs.pop('sudo', True):
+            sudo_path = self.kwargs.pop('sudo_path', '/usr/bin/sudo')
             if not os.path.isfile(sudo_path) or not os.access(sudo_path, os.X_OK):
                 raise IOError('%s not found' % sudo_path)
             self.commands.append(sudo_path)
 
-        pppd_path = kwargs.pop('pppd_path', '/usr/sbin/pppd')
+        pppd_path = self.kwargs.pop('pppd_path', '/usr/sbin/pppd')
         if not os.path.isfile(pppd_path) or not os.access(pppd_path, os.X_OK):
             raise IOError('%s not found' % pppd_path)
 
         self.commands.append(pppd_path)
 
-        for k,v in kwargs.items():
+        for k,v in self.kwargs.items():
             self.commands.append(k)
             self.commands.append(v)
-        self.commands.extend(args)
+        self.commands.extend(self.args)
         self.commands.append('nodetach')
 
     def connect(self, *args, **kwargs):
         self.run()
 
     def disconnect(self):
-        self.command(disconnect='')
+        self.command()
+        self.commands.append('disconnect')
         self.run()
 
         # try:

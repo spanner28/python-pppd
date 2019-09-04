@@ -65,9 +65,9 @@ class PPPConnection:
         self._laddr = None
         self._raddr = None
 
-        return self.connect()
+        return self.connect(args, kwargs)
 
-    def connect(self):
+    def connect(self, *args, **kwargs):
         commands = []
 
         if kwargs.pop('sudo', True):

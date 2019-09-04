@@ -67,6 +67,13 @@ class PPPConnection:
 
         self.commands = []
 
+        self.args = args
+        self.kwargs = kwargs
+
+        self.command(*self.args, **self.kwargs)
+
+
+    def command(self, *args, **kwargs):
         if kwargs.pop('sudo', True):
             sudo_path = kwargs.pop('sudo_path', '/usr/bin/sudo')
             if not os.path.isfile(sudo_path) or not os.access(sudo_path, os.X_OK):
@@ -86,7 +93,28 @@ class PPPConnection:
         self.commands.append('nodetach')
 
     def connect(self, *args, **kwargs):
+        self.run()
 
+    def disconnect(self):
+        self.command(disconnect='')
+        self.run()
+
+        # try:
+        #     if not self.connected():
+        #         return
+        # except PPPConnectionError:
+        #     return
+        #
+        # self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        # q = Queue()
+        # t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
+        # t.daemon = True # thread dies with the program
+        # t.start()
+        #
+        # self.proc.send_signal(signal.SIGHUP)
+        # self.proc.wait()
+
+    def run(self):
         self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
         q = Queue()
         t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
@@ -116,23 +144,6 @@ class PPPConnection:
                 raise PPPConnectionError(22, self.output)
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
-
-
-    def disconnect(self):
-        try:
-            if not self.connected():
-                return
-        except PPPConnectionError:
-            return
-
-        self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
-        q = Queue()
-        t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
-        t.daemon = True # thread dies with the program
-        t.start()
-
-        self.proc.send_signal(signal.SIGHUP)
-        self.proc.wait()
 
     def reconnect(self):
         self.disconnect()

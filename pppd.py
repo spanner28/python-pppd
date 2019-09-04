@@ -102,11 +102,11 @@ class PPPConnection:
                     raise
                 time.sleep(1)
             if 'ip-up finished' in self.output:
-                return True
+                return
             if 'authentication failed' in self.output:
-                return False
+                return
             if 'Connection terminated' in self.output:
-                return False
+                return
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 

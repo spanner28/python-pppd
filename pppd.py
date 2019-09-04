@@ -85,8 +85,6 @@ class PPPConnection:
         self.commands.extend(args)
         self.commands.append('nodetach')
 
-        return self.connect()
-
     def connect(self, *args, **kwargs):
 
         self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)

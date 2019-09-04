@@ -170,6 +170,13 @@ class PPPConnection:
         return self._raddr
 
     def connected(self):
+
+        self.proc = Popen(self.commands, stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        q = Queue()
+        t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
+        t.daemon = True # thread dies with the program
+        t.start()
+
         if self.proc.poll():
             try:
                 self.output += self.proc.stdout.read()

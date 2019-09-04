@@ -43,18 +43,10 @@ PPPD_RETURNCODES = {
     17: 'PPP negotiation failed because serial loopback was detected',
     18: 'Init script failed',
     19: 'Failed to authenticate to the peer',
+    20: 'Couldn\'t allocate PPP',
+    21: 'CHAP authentication failed',
+    22: 'Connection terminated',
 }
-
-class PPPConnectionError(Exception):
-    def __init__(self, code, output=None):
-        self.code = code
-        self.message = PPPD_RETURNCODES.get(code, 'Undocumented error occured')
-        self.output = output
-
-        super(Exception, self).__init__(code, output)
-
-    def __str__(self):
-        return self.message
 
 class PPPConnection:
     def __init__(self, *args, **kwargs):
@@ -90,8 +82,7 @@ class PPPConnection:
 
         while True:
             try:
-                try:
-                    self.line = q.get_nowait() # or q.get(timeout=.1)
+                try:  self.line = q.get_nowait() # or q.get(timeout=.1)
                 except Empty:
                     None
                 else:
@@ -105,11 +96,11 @@ class PPPConnection:
             if 'ip-up finished' in self.output:
                 return
             if 'Couldn\'t allocate PPP' in self.output:
-                raise Exception('Interface Already Allocated: %s' % self.line)
-            if 'authentication failed' in self.output:
-                raise Exception('Authentication Failed: %s' % self.line)
+                raise PPPConnectionError(20, self.output)
+            if 'CHAP authentication failed' in self.output:
+                raise PPPConnectionError(21, self.output)
             if 'Connection terminated' in self.output:
-                raise Exception('Connection Terminated: %s' % self.line)
+                raise PPPConnectionError(22, self.output)
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 

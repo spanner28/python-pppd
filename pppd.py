@@ -90,12 +90,13 @@ class PPPConnection:
 
         while True:
             try:
-                try:  line = q.get_nowait() # or q.get(timeout=.1)
+                try:
+                    self.line = q.get_nowait() # or q.get(timeout=.1)
                 except Empty:
                     None
                 else:
-                    line = codecs.decode(str(line).encode('utf-8', errors='ignore'), errors='ignore')
-                    self.output += line
+                    self.line = codecs.decode(str(self.line).encode('utf-8', errors='ignore'), errors='ignore')
+                    self.output += self.line
 
             except IOError as e:
                 if e.errno != 11:
@@ -103,12 +104,12 @@ class PPPConnection:
                 time.sleep(1)
             if 'ip-up finished' in self.output:
                 return
-            if 'authentication failed' in self.output:
-                raise PPPConnectionError(self.proc.returncode, self.output)
-            if 'Connection terminated' in self.output:
-                raise PPPConnectionError(self.proc.returncode, self.output)
             if 'Couldn\'t allocate PPP' in self.output:
-                raise PPPConnectionError(self.proc.returncode, self.output)
+                raise Exception('Interface Already Allocated: %s' % self.line)
+            if 'authentication failed' in self.output:
+                raise Exception('Authentication Failed: %s' % self.line)
+            if 'Connection terminated' in self.output:
+                raise Exception('Connection Terminated: %s' % self.line)
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 

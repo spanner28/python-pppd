@@ -48,6 +48,17 @@ PPPD_RETURNCODES = {
     22: 'Connection terminated',
 }
 
+class PPPConnectionError(Exception):
+    def __init__(self, code, output=None):
+        self.code = code
+        self.message = PPPD_RETURNCODES.get(code, 'Undocumented error occured')
+        self.output = output
+
+        super(Exception, self).__init__(code, output)
+
+    def __str__(self):
+        return self.message
+
 class PPPConnection:
     def __init__(self, *args, **kwargs):
         self.output = ''

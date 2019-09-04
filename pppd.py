@@ -21,7 +21,7 @@ def enqueue_output(out, queue):
         queue.put(line)
     out.close()
 
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 
 PPPD_RETURNCODES = {
     1:  'Fatal error occured',

@@ -130,7 +130,7 @@ class PPPConnection:
 
     def reconnect(self):
         self.disconnect()
-        eslf.connect()
+        self.connect()
 
     def read(self):
         return self.output

@@ -104,13 +104,13 @@ class PPPConnection:
             if 'ip-up finished' in self.output:
                 return
             if 'authentication failed' in self.output:
-                return
+                raise PPPConnectionError(self.proc.returncode, self.output)
             if 'Connection terminated' in self.output:
-                return
+                raise PPPConnectionError(self.proc.returncode, self.output)
             elif self.proc.poll():
                 raise PPPConnectionError(self.proc.returncode, self.output)
 
-    def output(self):
+    def read(self):
         return self.output
 
     @property

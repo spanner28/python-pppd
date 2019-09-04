@@ -66,6 +66,7 @@ class PPPConnection:
         self.output = ''
         self._laddr = None
         self._raddr = None
+        self._interface = ''
 
         self.args = args
         self.kwargs = kwargs

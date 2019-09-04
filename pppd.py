@@ -43,7 +43,7 @@ PPPD_RETURNCODES = {
     17: 'PPP negotiation failed because serial loopback was detected',
     18: 'Init script failed',
     19: 'Failed to authenticate to the peer',
-    20: 'Couldn\'t allocate PPP',
+    20: 'Failed to allocate PPP',
     21: 'CHAP authentication failed',
     22: 'Connection terminated',
 }

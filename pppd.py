@@ -47,6 +47,8 @@ PPPD_RETURNCODES = {
     20: 'Failed to allocate PPP',
     21: 'CHAP authentication failed',
     22: 'Connection terminated',
+    23: 'Timeout waiting for PADO packets',
+    24: 'Unable to complete PPPoE Discovery',
 }
 
 class PPPConnectionError(Exception):
@@ -159,12 +161,15 @@ class PPPConnection:
 
         while True:
             try:
-                try:  self.line = q.get_nowait() # or q.get(timeout=.1)
+                try:
+                    self.line = q.get_nowait() # or q.get(timeout=.1)
                 except Empty:
                     None
                 else:
                     self.line = codecs.decode(str(self.line).encode('utf-8', errors='ignore'), errors='ignore')
-                    self.output += self.line
+                    if not 'Plugin rp-pppoe.so loaded.' in self.line:
+                        self.output += self.line
+
                     if 'Connect: ' in self.line:
                         if (len(self.line.split()) > 1):
                             self._interface = self.line.split()[1]
@@ -173,6 +178,7 @@ class PPPConnection:
                 if e.errno != 11:
                     raise
                 time.sleep(1)
+
             if 'ip-up finished' in self.output:
                 return
             if 'remote IP address' in self.output:
@@ -183,7 +189,12 @@ class PPPConnection:
                 raise PPPConnectionError(21, self.output)
             if 'Connection terminated' in self.output:
                 raise PPPConnectionError(22, self.output)
-            elif self.proc.poll():
+            if 'Timeout waiting for PADO packets' in self.output:
+                raise PPPConnectionError(23, self.output)
+            if 'Unable to complete PPPoE Discovery' in self.output:
+                raise PPPConnectionError(24, self.output)
+            if self.proc.poll():
+                # TODO: alert on unknown exceptions here
                 raise PPPConnectionError(self.proc.returncode, self.output)
 
     def reconnect(self):

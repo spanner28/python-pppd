@@ -89,7 +89,9 @@ class PPPConnection:
             self.commands.append(sudo_path)
 
         pppd_path = self.kwargs.pop('pppd_path', '/usr/sbin/pppd')
-        if not os.path.isfile(pppd_path) or not os.access(pppd_path, os.X_OK):
+        # if not os.path.isfile(pppd_path) or not os.access(pppd_path, os.X_OK):
+        # using sudo to restrict so no access check needed
+        if not os.path.isfile(pppd_path):
             raise IOError('%s not found' % pppd_path)
 
         self.commands.append(pppd_path)

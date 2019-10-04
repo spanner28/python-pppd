@@ -110,21 +110,39 @@ class PPPConnection:
         self.run()
 
     def disconnect(self):
+        self.proc.kill()
 
-        for proc in psutil.process_iter():
-            try:
-                pinfo = proc.as_dict(attrs=['pid', 'cmdline'])
-            except psutil.NoSuchProcess:
-                pass
-            else:
-                if 'pppd call %s' % self.peer in ' '.join(pinfo['cmdline']):
-                    print(pinfo)
-                    try:
-                        proc = psutil.Process(pid=pinfo['pid'])
-                        proc.terminate()
-                    except psutil.NoSuchProcess as e:
-                        print(e)
-                        pass
+        # self.proc = Popen(command.split(), stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        # q = Queue()
+        # t = Thread(target=enqueue_output, args=(self.proc.stdout, q))
+        # t.daemon = True # thread dies with the program
+        # t.start()
+        #
+        # if self.proc.poll():
+        #     try:
+        #         output = self.proc.stdout.read()
+        #     except IOError as e:
+        #         if e.errno != 11:
+        #             raise
+        #     if 'pppd call %s' % self.peer in output
+        #         command = '/bin/kill'
+        #
+        #     return False
+
+        # for proc in psutil.process_iter():
+        #     try:
+        #         pinfo = proc.as_dict(attrs=['pid', 'cmdline'])
+        #     except psutil.NoSuchProcess:
+        #         pass
+        #     else:
+        #         if 'pppd call %s' % self.peer in ' '.join(pinfo['cmdline']):
+        #             print(pinfo)
+        #             try:
+        #                 proc = psutil.Process(pid=pinfo['pid'])
+        #                 proc.terminate()
+        #             except psutil.NoSuchProcess as e:
+        #                 print(e)
+        #                 pass
 
         # example 1
         # self.command()
